@@ -1,0 +1,18 @@
+Конфигурирование сервера-реплики lanmon
+1.	Версия postgresql-11.11
+2.	Сервер переносится копированием архива сервера – результата работы pg_basebackup (теория – здесь: https://postgrespro.ru/docs/postgrespro/11/continuous-archiving там же рядом есть про репликацию: https://postgrespro.ru/docs/postgrespro/11/high-availability )
+3.	Содержимое файла recovery.conf:
+	standby_mode = 'on'
+	restore_command = '7za x -so /mnt/hgfs/SF/WAL/%f.7z > %p'
+	archive_cleanup_command='pg_archivecleanup -d -x .7z /mnt/hgfs/SF/WAL %r'# каталог, куда должны копироваться запакованные журналы с МЭК-ского сервера
+	#restore_command = 'cp /mnt/hgfs/SF/WAL/%f "%p"'# вариант без упаковки файлов WAL
+	#recovery_target_time='2021-03-25 17:30:00+03:00' # - это если вдруг понадобиться восстанавливать копию на момент времени, чтобы не искать
++ recovery.conf должен находиться в /var/lib/postgresql/ (т.е. в каталоге data, а не там, где остальные конфиги в ubuntu)
+4.	Установка 7zip:
+sudo apt-get install p7zip-full
+5.	После копирования архива сервера сервер можно будет включить, он заработает, но подключиться к нему не удастся из-за проблем с локализацией. Их решение:
+sudo dpkg-reconfigure locales - там нам нужен ru_RU.CP1251, дефолтную локаль оставляем как есть
+sudo localedef -c -i ru_RU -f CP1251 Russian_Russia.1251
++ содержимое файла /etc/default/locale:
+LANG=Russian_Russia.1251
+
